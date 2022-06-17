@@ -16,6 +16,7 @@ export class ProxyBuilder {
     protected proxyFolder: string;
     protected sitesFolder:string;
     protected logsFolder:string;
+    protected varLetsEncryptFolder:string;
 
     public constructor(targetFolder: string) {
         this.targetFolder = targetFolder;
@@ -70,7 +71,7 @@ export class ProxyBuilder {
         fs.writeFileSync(path.join(this.proxyFolder, "security.conf"), TemplateSecurityConf());
         fs.writeFileSync(
             path.join(this.proxyFolder, "letsencrypt.conf"),
-            TemplateLetsEncryptConf(this.initFolder(["var", "letsencrypt"]))
+            TemplateLetsEncryptConf(this.varLetsEncryptFolder =  this.initFolder(["var", "letsencrypt"]))
         );
     }
 
@@ -85,6 +86,23 @@ export class ProxyBuilder {
                 sslFolder:this.sslFolder,
                 temporary:true
            }))
+           shelljs.exec(
+               [
+                   //
+                   "/usr/bin/certbot",
+                   process.env.DEBUG ? "--test-cert" : "",
+                   "--webroot",
+                   `-d ${domain}`,
+                   `--work-dir ${this.varLetsEncryptFolder}/lib`,
+                   `--logs-dir ${this.logsFolder}`,
+                   `--config-dir ${this.sslFolder}`,
+                   "--keep-until-expiring",
+                   "-n",
+                   `--webroot-path ${this.varLetsEncryptFolder}`,
+                   `-m info@truesoftware.nl`,
+                   `--expand`
+               ].join(" ")
+           );
         } else {
             logWarn(`Domain ${domain} already exists!`)
         }

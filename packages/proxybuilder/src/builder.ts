@@ -59,7 +59,7 @@ export class ProxyBuilder {
             path.join(this.nginxFolder, "nginx.conf"),
             TemplateNginxConf({
                 dhparamFile: this.createDhParam(),
-                modulesEnabled: this.initFolder([this.nginxFolder, "sites-enabled"]),
+                modulesEnabled: this.initFolder([this.nginxFolder, "modules-enabled"]),
                 logsFolder: this.logsFolder =  this.initFolder(["var", "logs"]),
                 confDFolder: this.initFolder([this.nginxFolder, "conf.d"]),
                 sitesEnabled: this.sitesFolder = this.initFolder([this.nginxFolder, "sites-enabled"])

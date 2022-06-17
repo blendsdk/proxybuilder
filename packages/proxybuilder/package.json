@@ -1,6 +1,6 @@
 {
   "name": "@truesoftware/proxybuilder",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "main": "index.js",
   "private": false,
   "bin": {

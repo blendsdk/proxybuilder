@@ -168,8 +168,7 @@ export class ProxyBuilder {
             });
         }
         domains.forEach((domain) => {
-            console.log(domain)
-            //this.renewCertificate(domain);
+            this.renewCertificate(domain);
         });
         this.nginxReload();
     }

@@ -3,11 +3,13 @@ import mkdirp from "mkdirp";
 import path from "path";
 import shelljs from "shelljs";
 import { fileExists, folderExists, logWarn, wrapInArray } from "./lib";
+import { TemplateEntry } from "./templates/entry_conf";
 import { TemplateGeneralConf } from "./templates/general_conf";
 import { TemplateInitialSite } from "./templates/initial_site";
 import { TemplateLetsEncryptConf } from "./templates/letsencrypt_conf";
 import { TemplateNginxConf } from "./templates/nginx_conf";
 import { TemplateSecurityConf } from "./templates/security_conf";
+import { TemplateSite } from "./templates/site_conf";
 
 export class ProxyBuilder {
     protected targetFolder: string;
@@ -17,11 +19,12 @@ export class ProxyBuilder {
     protected sitesFolder: string;
     protected logsFolder: string;
     protected varLetsEncryptFolder: string;
-    protected isDebug:boolean;
+    protected isDebug: boolean;
+    protected appsFolder: string;
 
-    public constructor(targetFolder: string,debug:boolean) {
+    public constructor(targetFolder: string, debug: boolean) {
         this.targetFolder = targetFolder;
-        this.isDebug = debug
+        this.isDebug = debug;
     }
 
     protected initFolder(folder: string | string[], root?: boolean) {
@@ -53,8 +56,9 @@ export class ProxyBuilder {
     protected init() {
         this.targetFolder = this.initFolder(this.targetFolder, true);
         this.nginxFolder = this.initFolder("nginx");
-        this.proxyFolder = this.initFolder(["proxy"]);
-        this.sslFolder = this.initFolder(["ssl"]);
+        this.proxyFolder = this.initFolder("proxy");
+        this.sslFolder = this.initFolder("ssl");
+        this.appsFolder = this.initFolder("apps");
 
         this.createSSLCertificate();
 
@@ -86,11 +90,15 @@ export class ProxyBuilder {
         }
     }
 
+    protected nginxReload() {
+        this.executeCommand("nginx -t");
+        this.executeCommand("nginx -s reload");
+    }
+
     protected requestSSLCertificate(domain: string) {
         const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
         fs.writeFileSync(mainConf, TemplateInitialSite({ domain, proxyFolder: this.proxyFolder }));
-        this.executeCommand("nginx -t");
-        this.executeCommand("nginx -s reload");
+        this.nginxReload()
         this.renewCertificate(domain);
     }
 
@@ -115,11 +123,29 @@ export class ProxyBuilder {
         );
     }
 
+    protected createSiteProxy(domain: string) {
+        const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
+        const appFolder = this.initFolder(["apps", domain]);
+        fs.writeFileSync(
+            mainConf,
+            TemplateSite({
+                domain,
+                proxyFolder: this.proxyFolder,
+                logFolder: this.logsFolder,
+                sslFolder: this.sslFolder,
+                appFolder
+            })
+        );
+        fs.writeFileSync(path.join(appFolder, "main.conf"), TemplateEntry({ proxyFolder: this.proxyFolder, domain }));
+        this.nginxReload();
+    }
+
     public create(domain: string) {
         this.init();
         const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
         if (!fileExists(mainConf)) {
             this.requestSSLCertificate(domain);
+            this.createSiteProxy(domain);
         } else {
             logWarn(`Domain ${domain} already exists!`);
         }

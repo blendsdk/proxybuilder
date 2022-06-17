@@ -2,26 +2,16 @@ export interface ITemplateSite {
     domain: string;
     proxyFolder: string;
     logFolder: string;
-    temporary: boolean;
     sslFolder: string;
+    appFolder:string;
 }
 export const TemplateSite = ({
     domain,
     proxyFolder,
     logFolder,
     sslFolder,
-    temporary
+    appFolder
 }: ITemplateSite) => {
-    const tempSSL = `
-        ssl_certificate ${sslFolder}/self-ssl.crt;
-        ssl_certificate_key ${sslFolder}/self-ssl.key;
-    `.trim();
-
-    const ssl = `
-        ssl_certificate ${sslFolder}/live/${domain}/fullchain.pem;
-        ssl_certificate_key ${sslFolder}/live/${domain}/privkey.pem;
-        ssl_trusted_certificate ${sslFolder}/live/${domain}/chain.pem;
-    `.trim();
     return `
 server {
         listen 443 ssl http2;
@@ -30,16 +20,14 @@ server {
         server_name .${domain};
 
         # SSL
-        ${temporary ? tempSSL : ssl}
+        ssl_certificate ${sslFolder}/live/${domain}/fullchain.pem;
+        ssl_certificate_key ${sslFolder}/live/${domain}/privkey.pem;
+        ssl_trusted_certificate ${sslFolder}/live/${domain}/chain.pem;
 
-        location / {
-          default_type text/plain;
-          return 200 'Hello ${domain}!';
-        }
+        include ${appFolder}/*.conf
 
         include ${proxyFolder}/security.conf;
         include ${proxyFolder}/general.conf;
-        include ${proxyFolder}/letsencrypt.conf;
 }
 
 server {

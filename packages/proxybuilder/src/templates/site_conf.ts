@@ -32,9 +32,9 @@ server {
         # SSL
         ${temporary ? tempSSL : ssl}
 
-        location /hello {
+        location / {
           default_type text/plain;
-          echo "Hello from ${domain}!";
+          return 200 '${domain}!'";
         }
 
         include ${proxyFolder}/security.conf;

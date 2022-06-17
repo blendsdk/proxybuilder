@@ -14,9 +14,9 @@ export class ProxyBuilder {
     protected nginxFolder: string;
     protected sslFolder: string;
     protected proxyFolder: string;
-    protected sitesFolder:string;
-    protected logsFolder:string;
-    protected varLetsEncryptFolder:string;
+    protected sitesFolder: string;
+    protected logsFolder: string;
+    protected varLetsEncryptFolder: string;
 
     public constructor(targetFolder: string) {
         this.targetFolder = targetFolder;
@@ -61,9 +61,9 @@ export class ProxyBuilder {
             TemplateNginxConf({
                 dhparamFile: this.createDhParam(),
                 modulesEnabled: this.initFolder([this.nginxFolder, "modules-enabled"]),
-                logsFolder: this.logsFolder =  this.initFolder(["var", "logs"]),
+                logsFolder: (this.logsFolder = this.initFolder(["var", "logs"])),
                 confDFolder: this.initFolder([this.nginxFolder, "conf.d"]),
-                sitesEnabled: this.sitesFolder = this.initFolder([this.nginxFolder, "sites-enabled"])
+                sitesEnabled: (this.sitesFolder = this.initFolder([this.nginxFolder, "sites-enabled"]))
             })
         );
 
@@ -71,43 +71,64 @@ export class ProxyBuilder {
         fs.writeFileSync(path.join(this.proxyFolder, "security.conf"), TemplateSecurityConf());
         fs.writeFileSync(
             path.join(this.proxyFolder, "letsencrypt.conf"),
-            TemplateLetsEncryptConf(this.varLetsEncryptFolder =  this.initFolder(["var", "letsencrypt"]))
+            TemplateLetsEncryptConf((this.varLetsEncryptFolder = this.initFolder(["var", "letsencrypt"])))
         );
     }
 
     public create(domain: string) {
         this.init();
-        const mainConf = path.join(this.sitesFolder,`${domain}.conf`);
-        if(!fileExists(mainConf)) {
-            fs.writeFileSync(mainConf,TemplateSite({
-                domain:domain,
-                logFolder:this.logsFolder,
-                proxyFolder:this.proxyFolder,
-                sslFolder:this.sslFolder,
-                temporary:true
-           }))
-           shelljs.exec("nginx -s reload");
-           shelljs.exec(
-               [
-                   //
-                   "/usr/bin/certbot",
-                   "certonly",
-                   process.env.DEBUG ? "--test-cert" : " ",
-                   "--webroot",
-                   `-d ${domain}`,
-                   `--work-dir ${this.varLetsEncryptFolder}/lib`,
-                   `--logs-dir ${this.logsFolder}`,
-                   `--config-dir ${this.sslFolder}`,
-                   "--keep-until-expiring",
-                   "-n",
-                   "--agree-tos",
-                   `--webroot-path ${this.varLetsEncryptFolder}`,
-                   `-m info@truesoftware.nl`,
-                   `--expand`
-               ].join(" ")
-           );
+        const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
+        if (!fileExists(mainConf)) {
+            fs.writeFileSync(
+                mainConf,
+                TemplateSite({
+                    domain: domain,
+                    logFolder: this.logsFolder,
+                    proxyFolder: this.proxyFolder,
+                    sslFolder: this.sslFolder,
+                    temporary: true
+                })
+            );
+            shelljs.exec("nginx -s reload");
+            const cmd = [
+                //
+                "/usr/bin/certbot",
+                "certonly",
+                process.env.DEBUG ? "--test-cert" : " ",
+                "--webroot",
+                `-d ${domain}`,
+                `--work-dir ${this.varLetsEncryptFolder}/lib`,
+                `--logs-dir ${this.logsFolder}`,
+                `--config-dir ${this.sslFolder}`,
+                "--keep-until-expiring",
+                "-n",
+                "--agree-tos",
+                `--webroot-path ${this.varLetsEncryptFolder}`,
+                `-m info@truesoftware.nl`,
+                `--expand`
+            ].join(" ");
+            console.log(JSON.stringify({ cmd }, null, 4));
+            shelljs.exec(
+                [
+                    //
+                    "/usr/bin/certbot",
+                    "certonly",
+                    process.env.DEBUG ? "--test-cert" : " ",
+                    "--webroot",
+                    `-d ${domain}`,
+                    `--work-dir ${this.varLetsEncryptFolder}/lib`,
+                    `--logs-dir ${this.logsFolder}`,
+                    `--config-dir ${this.sslFolder}`,
+                    "--keep-until-expiring",
+                    "-n",
+                    "--agree-tos",
+                    `--webroot-path ${this.varLetsEncryptFolder}`,
+                    `-m info@truesoftware.nl`,
+                    `--expand`
+                ].join(" ")
+            );
         } else {
-            logWarn(`Domain ${domain} already exists!`)
+            logWarn(`Domain ${domain} already exists!`);
         }
     }
 }

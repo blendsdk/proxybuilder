@@ -14,10 +14,6 @@ export const desc = "Initialized a new proxy";
 export const builder: CommandBuilder = {};
 
 export const handler = (argv) => {
-    console.log(
-        JSON.stringify({
-            Hello: "world",
-            argv
-        })
-    );
+    console.log(process.cwd())
+    console.log(argv)
 };

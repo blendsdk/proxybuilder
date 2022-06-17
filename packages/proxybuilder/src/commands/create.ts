@@ -15,9 +15,9 @@ export const desc = "Initialized a new proxy";
 export const builder: CommandBuilder = {
     t: {
         alias: "target",
-        required: true,
         type: "string",
-        description: "Target folder to install the files"
+        description: "Target folder to install the files",
+        default:"proxybuilder"
     },
     d: {
         alias: "domain",

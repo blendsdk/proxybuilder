@@ -90,24 +90,6 @@ export class ProxyBuilder {
                 })
             );
             shelljs.exec("nginx -s reload");
-            const cmd = [
-                //
-                "/usr/bin/certbot",
-                "certonly",
-                process.env.DEBUG ? "--test-cert" : " ",
-                "--webroot",
-                `-d ${domain}`,
-                `--work-dir ${this.varLetsEncryptFolder}/lib`,
-                `--logs-dir ${this.logsFolder}`,
-                `--config-dir ${this.sslFolder}`,
-                "--keep-until-expiring",
-                "-n",
-                "--agree-tos",
-                `--webroot-path ${this.varLetsEncryptFolder}`,
-                `-m info@truesoftware.nl`,
-                `--expand`
-            ].join(" ");
-            console.log(JSON.stringify({ cmd }, null, 4));
             shelljs.exec(
                 [
                     //
@@ -127,6 +109,17 @@ export class ProxyBuilder {
                     `--expand`
                 ].join(" ")
             );
+            fs.writeFileSync(
+                mainConf,
+                TemplateSite({
+                    domain: domain,
+                    logFolder: this.logsFolder,
+                    proxyFolder: this.proxyFolder,
+                    sslFolder: this.sslFolder,
+                    temporary: false
+                })
+            );
+            shelljs.exec("nginx -s reload");
         } else {
             logWarn(`Domain ${domain} already exists!`);
         }

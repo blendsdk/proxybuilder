@@ -34,7 +34,7 @@ server {
 
         location / {
           default_type text/plain;
-          return 200 '${domain}!'";
+          return 200 '${domain}!';
         }
 
         include ${proxyFolder}/security.conf;

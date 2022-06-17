@@ -1,0 +1,30 @@
+{
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=10.15.0",
+    "yarn": ">=1.5.1"
+  },
+  "scripts": {
+    "tag-version-auto": "lerna version --no-changelog --conventional-commits --yes",
+    "publish-packages": "lerna publish from-package",
+    "postinstall": "rm -fR ./node_modules/@types/eslint-scope",
+    "checkrepo": "git diff-index --quiet HEAD",
+    "mkpack": "rm -fR ./release && mkdir -p ./release && lerna run mkpack && find ./packages -name *.tgz -exec mv {} ./release \\;",
+    "bootstrap": "lerna bootstrap --use-workspaces",
+    "build": "lerna clean -y && lerna run build",
+    "ncu": "ncu -u -x \"@blendsdk*\" && lerna exec \"ncu -u -x '@blendsdk*' \" && rm -fR node_modules yarn.lock && yarn install && yarn bootstrap && yarn build",
+    "release-dev": "yarn checkrepo && lerna version --no-changelog --conventional-commits --yes && yarn mkpack && git reset --hard",
+    "release-prod": "yarn checkrepo && && yarn mkpack && git reset --hard"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "lerna": "^5.1.4",
+    "nodemon": "^2.0.16",
+    "npm-check-updates": "^14.0.1",
+    "typescript": "^4.7.3"
+  }
+}

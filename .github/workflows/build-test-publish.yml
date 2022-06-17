@@ -1,0 +1,36 @@
+name: BuildTestDeploy
+on:
+    push:
+        branches:
+            - "*" # matches every branch that doesn't contain a '/'
+            - "*/*" # matches every branch containing a single '/'
+            - "**" # matches every branch
+jobs:
+    BuildTestDeploy:
+        runs-on: self-hosted
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                  fetch-depth: 0
+
+            - name: Locking the build queue
+              run: workflow_queue queue blendsdk
+
+            - name: Installing Packages
+              run: |
+                yarn install
+                yarn bootstrap
+
+            - name: Building the Project
+              run: |
+                  yarn build
+
+            - name: Publish packages
+              run: |
+                  git reset --hard
+                  yarn tag-version-auto --yes
+                  yarn publish-packages --yes
+
+            - name: Unlocking The Build Queue
+              if: always()
+              run: workflow_queue clear blendsdk

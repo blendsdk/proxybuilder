@@ -1,0 +1,25 @@
+{
+  "name": "@truesoftware/proxybuilder",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": false,
+  "bin": {
+    "proxybuilder": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "watch-node": "nodemon --watch ./dist --exec index.js",
+    "test": "exit 0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/glob": "^7.2.0",
+    "@types/node": "^18.0.0",
+    "glob": "^8.0.3",
+    "yargs": "^17.5.1",
+    "@types/yargs": "^17.0.10"
+  }
+}

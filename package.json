@@ -13,7 +13,6 @@
     "publish-packages": "lerna publish from-package",
     "postinstall": "rm -fR ./node_modules/@types/eslint-scope",
     "checkrepo": "git diff-index --quiet HEAD",
-    "mkpack": "rm -fR ./release && mkdir -p ./release && lerna run mkpack && find ./packages -name *.tgz -exec mv {} ./release \\;",
     "bootstrap": "lerna bootstrap --use-workspaces",
     "build": "lerna clean -y && lerna run build",
     "ncu": "ncu -u -x \"@blendsdk*\" && lerna exec \"ncu -u -x '@blendsdk*' \" && rm -fR node_modules yarn.lock && yarn install && yarn bootstrap && yarn build",

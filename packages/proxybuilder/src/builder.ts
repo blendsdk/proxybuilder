@@ -2,7 +2,7 @@ import fs from "fs";
 import mkdirp from "mkdirp";
 import path from "path";
 import shelljs from "shelljs";
-import { fileExists, folderExists, logWarn, wrapInArray } from "./lib";
+import { fileExists, folderExists, logWarn, symlinkExists, wrapInArray } from "./lib";
 import { TemplateEntry } from "./templates/entry_conf";
 import { TemplateGeneralConf } from "./templates/general_conf";
 import { TemplateInitialSite } from "./templates/initial_site";
@@ -62,8 +62,11 @@ export class ProxyBuilder {
 
         this.createSSLCertificate();
 
+        const nginxConfFile = path.join(this.nginxFolder, "nginx.conf");
+        const nginxConfFileSystem = "/etc/nginx/nginx.conf"
+
         fs.writeFileSync(
-            path.join(this.nginxFolder, "nginx.conf"),
+            nginxConfFile,
             TemplateNginxConf({
                 dhparamFile: this.createDhParam(),
                 modulesEnabled: this.initFolder([this.nginxFolder, "modules-enabled"]),
@@ -72,6 +75,11 @@ export class ProxyBuilder {
                 sitesEnabled: (this.sitesFolder = this.initFolder([this.nginxFolder, "sites-enabled"]))
             })
         );
+
+        if (!symlinkExists(nginxConfFileSystem)) {
+            this.executeCommand(`mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.${Date.now()}`);
+            this.executeCommand(`ln -s ${nginxConfFile} ${nginxConfFileSystem}`);
+        }
 
         fs.writeFileSync(path.join(this.proxyFolder, "general.conf"), TemplateGeneralConf());
         fs.writeFileSync(path.join(this.proxyFolder, "security.conf"), TemplateSecurityConf());

@@ -11,6 +11,9 @@ export function wrapInArray<T>(obj: any): T[] {
 export function isNullOrUndef(value: any): boolean {
     return value === null || value === undefined || value === "undefined";
 }
+export function symlinkExists(file:string) {
+    return fs.statSync(file, { throwIfNoEntry: false }) && fs.statSync(file).isSymbolicLink();
+}
 
 export function folderExists(folder: string) {
     return fs.lstatSync(folder, { throwIfNoEntry: false }) && fs.statSync(folder).isDirectory()

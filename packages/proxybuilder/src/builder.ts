@@ -86,6 +86,7 @@ export class ProxyBuilder {
                 sslFolder:this.sslFolder,
                 temporary:true
            }))
+           shelljs.exec("nginx -s reload");
            shelljs.exec(
                [
                    //

@@ -40,7 +40,7 @@ export class ProxyBuilder {
     }
 
     protected createSSLCertificate() {
-        if (!fileExists(path.join(this.sslFolder, "ssl.key"))) {
+        if (!fileExists(path.join(this.sslFolder, "self-ssl.key"))) {
             shelljs.exec(
                 `openssl req -batch -x509 -nodes -days 365 -newkey rsa:2048 -keyout ${this.sslFolder}/self-ssl.key -out ${this.sslFolder}/self-ssl.crt`
             );

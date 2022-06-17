@@ -17,9 +17,11 @@ export class ProxyBuilder {
     protected sitesFolder: string;
     protected logsFolder: string;
     protected varLetsEncryptFolder: string;
+    protected isDebug:boolean;
 
-    public constructor(targetFolder: string) {
+    public constructor(targetFolder: string,debug:boolean) {
         this.targetFolder = targetFolder;
+        this.isDebug = debug
     }
 
     protected initFolder(folder: string | string[], root?: boolean) {
@@ -97,7 +99,7 @@ export class ProxyBuilder {
             [
                 "/usr/bin/certbot",
                 "certonly",
-                process.env.DEBUG ? "--test-cert" : " ",
+                this.isDebug ? "--test-cert" : " ",
                 "--webroot",
                 `-d ${domain}`,
                 `--work-dir ${this.varLetsEncryptFolder}/lib`,

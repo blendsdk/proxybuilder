@@ -1,0 +1,30 @@
+import fs from "fs";
+
+export function folderExists(folder: string) {
+    return fs.lstatSync(folder, { throwIfNoEntry: false }) && fs.statSync(folder).isDirectory()
+}
+
+export function fileExists(file: string) {
+    return fs.lstatSync(file, { throwIfNoEntry: false }) && fs.statSync(file).isFile();
+}
+
+function log(type: string, message: string, data?: any) {
+    const msg = `[${type}] ${message} ${data ? JSON.stringify(data) : ""}`.trim();
+    if (type === "ERROR") {
+        console.error(msg);
+    } else {
+        console.log(msg);
+    }
+}
+
+export function logInfo(message: string, data?: any) {
+    log("INFO", message, data);
+}
+
+export function logWarn(message: string, data?: any) {
+    log("WARN", message, data);
+}
+
+export function logError(message: string, data?: any) {
+    log("ERROR", message, data);
+}

@@ -24,7 +24,7 @@ server {
         ssl_certificate_key ${sslFolder}/live/${domain}/privkey.pem;
         ssl_trusted_certificate ${sslFolder}/live/${domain}/chain.pem;
 
-        include ${appFolder}/*.conf
+        include ${appFolder}/*.conf;
 
         include ${proxyFolder}/security.conf;
         include ${proxyFolder}/general.conf;

@@ -47,8 +47,6 @@ server {
         listen 80;
         listen [::]:80;
         server_name .${domain};
-        include ${proxyFolder}/security.conf;
-
 
         # logging
         access_log ${logFolder}/${domain}.access.log;

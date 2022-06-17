@@ -1,10 +1,9 @@
-import { ITargetFolder } from "../types";
 
-export const TemplateLetsEncryptConf = ({ targetFolder }: ITargetFolder) => {
+export const TemplateLetsEncryptConf = (wwwFolder:string) => {
     return `
 # ACME-challenge
 location ^~ /.well-known/acme-challenge/ {
-    root ${targetFolder}/var/www/_letsencrypt;
+    root ${wwwFolder};
 }
     `.trim();
 };

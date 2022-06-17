@@ -1,5 +1,17 @@
 import fs from "fs";
 
+export function isArray(value: any): boolean {
+    return Array.isArray(value);
+}
+
+export function wrapInArray<T>(obj: any): T[] {
+    return isArray(obj) ? obj : isNullOrUndef(obj) ? [] : [obj];
+}
+
+export function isNullOrUndef(value: any): boolean {
+    return value === null || value === undefined || value === "undefined";
+}
+
 export function folderExists(folder: string) {
     return fs.lstatSync(folder, { throwIfNoEntry: false }) && fs.statSync(folder).isDirectory()
 }

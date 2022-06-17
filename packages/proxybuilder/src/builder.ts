@@ -2,8 +2,9 @@ import fs from "fs";
 import mkdirp from "mkdirp";
 import path from "path";
 import shelljs from "shelljs";
-import { fileExists, folderExists, logWarn, wrapInArray } from "./lib";
+import { fileExists, folderExists, logError, logWarn, wrapInArray } from "./lib";
 import { TemplateGeneralConf } from "./templates/general_conf";
+import { TemplateInitialSite } from "./templates/initial_site";
 import { TemplateLetsEncryptConf } from "./templates/letsencrypt_conf";
 import { TemplateNginxConf } from "./templates/nginx_conf";
 import { TemplateSecurityConf } from "./templates/security_conf";
@@ -75,7 +76,24 @@ export class ProxyBuilder {
         );
     }
 
+    protected requestSSLCertificate(domain: string) {
+        const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
+        fs.writeFileSync(mainConf, TemplateInitialSite({ domain, proxyFolder: this.proxyFolder }));
+        let result =  shelljs.exec("nginx -t", { fatal: true });
+        if(result.code ===0) {
+            console.log("cool")
+        } else {
+            logError(result.toString());
+        }
+
+    }
+
     public create(domain: string) {
+        this.init();
+        this.requestSSLCertificate(domain);
+    }
+
+    public z_create(domain: string) {
         this.init();
         const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
         if (!fileExists(mainConf)) {

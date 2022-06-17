@@ -39,6 +39,7 @@ server {
 
         include ${proxyFolder}/security.conf;
         include ${proxyFolder}/general.conf;
+        include ${proxyFolder}/letsencrypt.conf;
 }
 
 server {

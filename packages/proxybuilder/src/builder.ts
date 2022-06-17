@@ -1,4 +1,5 @@
 import fs from "fs";
+import { glob } from "glob";
 import mkdirp from "mkdirp";
 import path from "path";
 import shelljs from "shelljs";
@@ -63,7 +64,7 @@ export class ProxyBuilder {
         this.createSSLCertificate();
 
         const nginxConfFile = path.join(this.nginxFolder, "nginx.conf");
-        const nginxConfFileSystem = "/etc/nginx/nginx.conf"
+        const nginxConfFileSystem = "/etc/nginx/nginx.conf";
 
         fs.writeFileSync(
             nginxConfFile,
@@ -106,7 +107,7 @@ export class ProxyBuilder {
     protected requestSSLCertificate(domain: string) {
         const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
         fs.writeFileSync(mainConf, TemplateInitialSite({ domain, proxyFolder: this.proxyFolder }));
-        this.nginxReload()
+        this.nginxReload();
         this.renewCertificate(domain);
     }
 
@@ -157,5 +158,19 @@ export class ProxyBuilder {
         } else {
             logWarn(`Domain ${domain} already exists!`);
         }
+    }
+
+    public renew(domains: string[]) {
+        this.init();
+        if (domains.length === 0) {
+            glob.sync(path.join(this.sitesFolder, "*.conf")).forEach((file) => {
+                domains.push(path.parse(file).name);
+            });
+        }
+        domains.forEach((domain) => {
+            console.log(domain)
+            //this.renewCertificate(domain);
+        });
+        this.nginxReload();
     }
 }

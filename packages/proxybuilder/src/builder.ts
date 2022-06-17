@@ -100,6 +100,7 @@ export class ProxyBuilder {
                    `--config-dir ${this.sslFolder}`,
                    "--keep-until-expiring",
                    "-n",
+                   "--agree-tos",
                    `--webroot-path ${this.varLetsEncryptFolder}`,
                    `-m info@truesoftware.nl`,
                    `--expand`

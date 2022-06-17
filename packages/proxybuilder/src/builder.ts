@@ -91,7 +91,8 @@ export class ProxyBuilder {
                [
                    //
                    "/usr/bin/certbot",
-                   process.env.DEBUG ? "--test-cert" : "",
+                   "certonly",
+                   process.env.DEBUG ? "--test-cert" : " ",
                    "--webroot",
                    `-d ${domain}`,
                    `--work-dir ${this.varLetsEncryptFolder}/lib`,

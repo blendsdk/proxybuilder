@@ -9,6 +9,7 @@ import { TemplateGeneralConf } from "./templates/general_conf";
 import { TemplateInitialSite } from "./templates/initial_site";
 import { TemplateLetsEncryptConf } from "./templates/letsencrypt_conf";
 import { TemplateNginxConf } from "./templates/nginx_conf";
+import { TemplateProxyConf } from "./templates/proxy_conf";
 import { TemplateSecurityConf } from "./templates/security_conf";
 import { TemplateSite } from "./templates/site_conf";
 
@@ -84,6 +85,7 @@ export class ProxyBuilder {
 
         fs.writeFileSync(path.join(this.proxyFolder, "general.conf"), TemplateGeneralConf());
         fs.writeFileSync(path.join(this.proxyFolder, "security.conf"), TemplateSecurityConf());
+        fs.writeFileSync(path.join(this.proxyFolder, "proxy.conf"), TemplateProxyConf());
         fs.writeFileSync(
             path.join(this.proxyFolder, "letsencrypt.conf"),
             TemplateLetsEncryptConf((this.varLetsEncryptFolder = this.initFolder(["var", "letsencrypt"])))

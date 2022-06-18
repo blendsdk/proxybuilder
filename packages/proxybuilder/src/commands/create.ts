@@ -16,8 +16,9 @@ export const builder: CommandBuilder = {
     t: {
         alias: "target",
         type: "string",
+        required: false,
         description: "Target folder to install the files",
-        default: "proxybuilder"
+        default: "/opt/proxybuilder"
     },
     d: {
         alias: "domain",
@@ -33,7 +34,7 @@ export const builder: CommandBuilder = {
     }
 };
 
-export const handler = (argv:any) => {
-    const builder = new ProxyBuilder(argv.target,argv.staging ? true : false)
-    builder.create(argv.domain)
+export const handler = (argv: any) => {
+    const builder = new ProxyBuilder(argv.target, argv.staging ? true : false);
+    builder.create(argv.domain);
 };

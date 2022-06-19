@@ -3,7 +3,7 @@ import { glob } from "glob";
 import mkdirp from "mkdirp";
 import path from "path";
 import shelljs from "shelljs";
-import { fileExists, folderExists, logWarn, symlinkExists, wrapInArray } from "./lib";
+import { fileExists, folderExists, logInfo, logWarn, symlinkExists, wrapInArray } from "./lib";
 import { TemplateEntry } from "./templates/entry_conf";
 import { TemplateGeneralConf } from "./templates/general_conf";
 import { TemplateInitialSite } from "./templates/initial_site";
@@ -170,6 +170,7 @@ export class ProxyBuilder {
             });
         }
         domains.forEach((domain) => {
+            logInfo(`Trying to renew ${domain}`)
             this.renewCertificate(domain);
         });
         this.nginxReload();

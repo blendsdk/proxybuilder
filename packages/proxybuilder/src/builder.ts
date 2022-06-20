@@ -1,17 +1,8 @@
-import fs from "fs";
 import { glob } from "glob";
 import mkdirp from "mkdirp";
 import path from "path";
 import shelljs from "shelljs";
-import { fileExists, folderExists, logInfo, logWarn, symlinkExists, wrapInArray } from "./lib";
-import { TemplateEntry } from "./templates/entry_conf";
-import { TemplateGeneralConf } from "./templates/general_conf";
-import { TemplateInitialSite } from "./templates/initial_site";
-import { TemplateLetsEncryptConf } from "./templates/letsencrypt_conf";
-import { TemplateNginxConf } from "./templates/nginx_conf";
-import { TemplateProxyConf } from "./templates/proxy_conf";
-import { TemplateSecurityConf } from "./templates/security_conf";
-import { TemplateSite } from "./templates/site_conf";
+import { fileExists, folderExists, logInfo, logWarn, renderTemplate, symlinkExists, wrapInArray } from "./lib";
 
 export class ProxyBuilder {
     protected targetFolder: string;
@@ -55,6 +46,41 @@ export class ProxyBuilder {
         }
     }
 
+    protected createNginxConf() {
+        const nginxConfFile = path.join(this.nginxFolder, "nginx.conf");
+        const nginxConfFileSystem = "/etc/nginx/nginx.conf";
+
+        renderTemplate(
+            "nginx.conf",
+            {
+                dhparamFile: this.createDhParam(),
+                modulesEnabled: this.initFolder([this.nginxFolder, "modules-enabled"]),
+                logsFolder: (this.logsFolder = this.initFolder(["var", "logs"])),
+                confDFolder: this.initFolder([this.nginxFolder, "conf.d"]),
+                sitesEnabled: (this.sitesFolder = this.initFolder([this.nginxFolder, "sites-enabled"]))
+            },
+            nginxConfFile
+        );
+
+        if (!symlinkExists(nginxConfFileSystem)) {
+            this.executeCommand(`mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.${Date.now()}`, true);
+            this.executeCommand(`ln -s ${nginxConfFile} ${nginxConfFileSystem}`, true);
+        }
+    }
+
+    protected renderProxyConfigs() {
+        this.varLetsEncryptFolder = this.initFolder(["var", "letsencrypt"]);
+        ["general.conf", "security.conf", "proxy.conf"].forEach((conf) => {
+            renderTemplate(
+                conf,
+                {
+                    wwwFolder: this.varLetsEncryptFolder
+                },
+                path.join(this.proxyFolder, conf)
+            );
+        });
+    }
+
     protected init() {
         this.targetFolder = this.initFolder(this.targetFolder, true);
         this.nginxFolder = this.initFolder("nginx");
@@ -63,36 +89,14 @@ export class ProxyBuilder {
         this.appsFolder = this.initFolder("apps");
 
         this.createSSLCertificate();
-
-        const nginxConfFile = path.join(this.nginxFolder, "nginx.conf");
-        const nginxConfFileSystem = "/etc/nginx/nginx.conf";
-
-        fs.writeFileSync(
-            nginxConfFile,
-            TemplateNginxConf({
-                dhparamFile: this.createDhParam(),
-                modulesEnabled: this.initFolder([this.nginxFolder, "modules-enabled"]),
-                logsFolder: (this.logsFolder = this.initFolder(["var", "logs"])),
-                confDFolder: this.initFolder([this.nginxFolder, "conf.d"]),
-                sitesEnabled: (this.sitesFolder = this.initFolder([this.nginxFolder, "sites-enabled"]))
-            })
-        );
-
-        if (!symlinkExists(nginxConfFileSystem)) {
-            this.executeCommand(`mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.${Date.now()}`);
-            this.executeCommand(`ln -s ${nginxConfFile} ${nginxConfFileSystem}`);
-        }
-
-        fs.writeFileSync(path.join(this.proxyFolder, "general.conf"), TemplateGeneralConf());
-        fs.writeFileSync(path.join(this.proxyFolder, "security.conf"), TemplateSecurityConf());
-        fs.writeFileSync(path.join(this.proxyFolder, "proxy.conf"), TemplateProxyConf());
-        fs.writeFileSync(
-            path.join(this.proxyFolder, "letsencrypt.conf"),
-            TemplateLetsEncryptConf((this.varLetsEncryptFolder = this.initFolder(["var", "letsencrypt"])))
-        );
+        this.createNginxConf();
+        this.renderProxyConfigs();
     }
 
-    protected executeCommand(command: string) {
+    protected executeCommand(command: string, dryRun?: boolean) {
+        if (dryRun && process.env.DRYRUN) {
+            return true;
+        }
         const result = shelljs.exec(command, { fatal: true });
         if (result.code === 0) {
             return true;
@@ -102,13 +106,13 @@ export class ProxyBuilder {
     }
 
     protected nginxReload() {
-        this.executeCommand("nginx -t");
-        this.executeCommand("nginx -s reload");
+        this.executeCommand("nginx -t", true);
+        this.executeCommand("nginx -s reload", true);
     }
 
     protected requestSSLCertificate(domain: string) {
         const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
-        fs.writeFileSync(mainConf, TemplateInitialSite({ domain, proxyFolder: this.proxyFolder }));
+        renderTemplate("initial.conf", { domain, proxyFolder: this.proxyFolder }, mainConf);
         this.nginxReload();
         this.renewCertificate(domain);
     }
@@ -130,24 +134,26 @@ export class ProxyBuilder {
                 `--webroot-path ${this.varLetsEncryptFolder}`,
                 `-m info@truesoftware.nl`,
                 `--expand`
-            ].join(" ")
+            ].join(" "),
+            true
         );
     }
 
     protected createSiteProxy(domain: string) {
         const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
         const appFolder = this.initFolder(["apps", domain]);
-        fs.writeFileSync(
-            mainConf,
-            TemplateSite({
+        renderTemplate(
+            "site.conf",
+            {
                 domain,
                 proxyFolder: this.proxyFolder,
                 logFolder: this.logsFolder,
                 sslFolder: this.sslFolder,
                 appFolder
-            })
+            },
+            mainConf
         );
-        fs.writeFileSync(path.join(appFolder, "main.conf"), TemplateEntry({ proxyFolder: this.proxyFolder, domain }));
+        renderTemplate("entry.conf", { proxyFolder: this.proxyFolder, domain }, path.join(appFolder, "main.conf"));
         this.nginxReload();
     }
 
@@ -170,7 +176,7 @@ export class ProxyBuilder {
             });
         }
         domains.forEach((domain) => {
-            logInfo(`Trying to renew ${domain}`)
+            logInfo(`Trying to renew ${domain}`);
             this.renewCertificate(domain);
         });
         this.nginxReload();

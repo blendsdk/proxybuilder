@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 
 export function isArray(value: any): boolean {
     return Array.isArray(value);
@@ -11,12 +12,12 @@ export function wrapInArray<T>(obj: any): T[] {
 export function isNullOrUndef(value: any): boolean {
     return value === null || value === undefined || value === "undefined";
 }
-export function symlinkExists(file:string) {
+export function symlinkExists(file: string) {
     return fs.statSync(file, { throwIfNoEntry: false }) && fs.statSync(file).isSymbolicLink();
 }
 
 export function folderExists(folder: string) {
-    return fs.lstatSync(folder, { throwIfNoEntry: false }) && fs.statSync(folder).isDirectory()
+    return fs.lstatSync(folder, { throwIfNoEntry: false }) && fs.statSync(folder).isDirectory();
 }
 
 export function fileExists(file: string) {
@@ -42,4 +43,13 @@ export function logWarn(message: string, data?: any) {
 
 export function logError(message: string, data?: any) {
     log("ERROR", message, data);
+}
+
+export function renderTemplate<TemplateParams = any>(file: string, data: TemplateParams, outFile: string) {
+    let template = fs.readFileSync(path.join(__dirname, "..", "resources", file)).toString();
+    Object.entries(data || {}).forEach(([key, value]) => {
+        key = `%${key}%`;
+        template = template.replace(new RegExp(key, "g"), value.toString());
+    });
+    fs.writeFileSync(outFile, template);
 }

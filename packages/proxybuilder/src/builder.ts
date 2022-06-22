@@ -6,7 +6,7 @@ import { fileExists, folderExists, logInfo, logWarn, renderTemplate, symlinkExis
 
 export class ProxyBuilder {
     protected targetFolder: string;
-    protected targetName:string;
+    protected targetName: string;
     protected nginxFolder: string;
     protected sslFolder: string;
     protected proxyFolder: string;
@@ -95,14 +95,14 @@ export class ProxyBuilder {
         this.createNginxConf();
         this.renderProxyConfigs();
 
-        console.log({ targetName :this.targetFolder});
+        console.log({ targetName: this.targetFolder });
     }
 
     protected executeCommand(command: string, dryRun?: boolean, cwd?: string) {
         if (dryRun && process.env.DRYRUN) {
             return true;
         }
-        const result = shelljs.exec(command, { fatal: true, cwd });
+        const result = shelljs.exec(command, cwd ? { fatal: true, cwd } : { fatal: true });
         if (result.code === 0) {
             return true;
         } else {

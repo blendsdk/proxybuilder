@@ -65,6 +65,7 @@ export class ProxyBuilder {
         if (!symlinkExists(nginxConfFileSystem)) {
             this.executeCommand(`mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.${Date.now()}`, true);
             this.executeCommand(`ln -s ${nginxConfFile} ${nginxConfFileSystem}`, true);
+            this.executeCommand(`ln -s ${this.targetFolder}`, true);
         }
     }
 

@@ -6,6 +6,7 @@ import { fileExists, folderExists, logInfo, logWarn, renderTemplate, symlinkExis
 
 export class ProxyBuilder {
     protected targetFolder: string;
+    protected targetName:string;
     protected nginxFolder: string;
     protected sslFolder: string;
     protected proxyFolder: string;
@@ -84,6 +85,7 @@ export class ProxyBuilder {
 
     protected init() {
         this.targetFolder = this.initFolder(this.targetFolder, true);
+        this.targetName = path.dirname(this.targetFolder);
         this.nginxFolder = this.initFolder("nginx");
         this.proxyFolder = this.initFolder("proxy");
         this.sslFolder = this.initFolder("ssl");
@@ -92,6 +94,8 @@ export class ProxyBuilder {
         this.createSSLCertificate();
         this.createNginxConf();
         this.renderProxyConfigs();
+
+        console.log({ targetName :this.targetFolder});
     }
 
     protected executeCommand(command: string, dryRun?: boolean, cwd?: string) {

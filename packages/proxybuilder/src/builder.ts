@@ -65,7 +65,7 @@ export class ProxyBuilder {
         if (!symlinkExists(nginxConfFileSystem)) {
             this.executeCommand(`mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.${Date.now()}`, true);
             this.executeCommand(`ln -s ${nginxConfFile} ${nginxConfFileSystem}`, true);
-            this.executeCommand(`ln -s ${this.targetFolder}`, true);
+            this.executeCommand(`ln -s ${this.targetFolder}`, true, "/etc/nginx");
         }
     }
 
@@ -94,11 +94,11 @@ export class ProxyBuilder {
         this.renderProxyConfigs();
     }
 
-    protected executeCommand(command: string, dryRun?: boolean) {
+    protected executeCommand(command: string, dryRun?: boolean, cwd?: string) {
         if (dryRun && process.env.DRYRUN) {
             return true;
         }
-        const result = shelljs.exec(command, { fatal: true });
+        const result = shelljs.exec(command, { fatal: true, cwd });
         if (result.code === 0) {
             return true;
         } else {

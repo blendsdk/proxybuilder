@@ -70,10 +70,11 @@ export class ProxyBuilder {
             this.executeCommand(`ln -s ${this.targetFolder}`, true, "/etc/nginx");
         }
 
-        if (!symlinkExists(`/etc/nginx/${this.targetName}`)) {
-            logInfo(`Creating ${this.targetName} symlink`);
-            this.executeCommand(`ln -s ${this.targetFolder}`, true, "/etc/nginx");
-        }
+        // Disable for now
+        // if (!symlinkExists(`/etc/nginx/${this.targetName}`)) {
+        //     logInfo(`Creating ${this.targetName} symlink`);
+        //     this.executeCommand(`ln -s ${this.targetFolder}`, true, "/etc/nginx");
+        // }
     }
 
     protected renderProxyConfigs() {
@@ -101,7 +102,7 @@ export class ProxyBuilder {
         this.createNginxConf();
         this.renderProxyConfigs();
 
-        console.log({ targetName: this.targetFolder });
+        console.log({ targetName: this.targetName });
     }
 
     protected executeCommand(command: string, dryRun?: boolean, cwd?: string) {

@@ -64,8 +64,14 @@ export class ProxyBuilder {
         );
 
         if (!symlinkExists(nginxConfFileSystem)) {
+            logInfo("Creating nginx.conf symlink")
             this.executeCommand(`mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.${Date.now()}`, true);
             this.executeCommand(`ln -s ${nginxConfFile} ${nginxConfFileSystem}`, true);
+            this.executeCommand(`ln -s ${this.targetFolder}`, true, "/etc/nginx");
+        }
+
+        if (!symlinkExists(`/etc/nginx/${this.targetName}`)) {
+            logInfo(`Creating ${this.targetName} symlink`);
             this.executeCommand(`ln -s ${this.targetFolder}`, true, "/etc/nginx");
         }
     }

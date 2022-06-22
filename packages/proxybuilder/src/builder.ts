@@ -70,7 +70,7 @@ export class ProxyBuilder {
 
     protected renderProxyConfigs() {
         this.varLetsEncryptFolder = this.initFolder(["var", "letsencrypt"]);
-        ["general.conf", "security.conf", "proxy.conf", "letsencrypt.conf"].forEach((conf) => {
+        ["general.conf", "proxy.conf", "letsencrypt.conf"].forEach((conf) => {
             renderTemplate(
                 conf,
                 {
@@ -153,7 +153,21 @@ export class ProxyBuilder {
             },
             mainConf
         );
-        renderTemplate("entry.conf", { proxyFolder: this.proxyFolder, domain }, path.join(appFolder, "main.conf"));
+        ["site-main.conf", "site-ssl.conf", "site-log.conf", "site-security.conf", "site-custom.conf"].forEach(
+            (conf) => {
+                renderTemplate(
+                    conf,
+                    {
+                        domain,
+                        appFolder: this.appsFolder,
+                        sslFolder: this.sslFolder,
+                        logFolder: this.logsFolder,
+                        proxyFolder: this.proxyFolder
+                    },
+                    path.join(this.appsFolder, domain, conf.replace("site-", ""))
+                );
+            }
+        );
         this.nginxReload();
     }
 

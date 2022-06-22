@@ -85,7 +85,7 @@ export class ProxyBuilder {
 
     protected init() {
         this.targetFolder = this.initFolder(this.targetFolder, true);
-        this.targetName = path.dirname(this.targetFolder);
+        this.targetName = path.basename(this.targetFolder);
         this.nginxFolder = this.initFolder("nginx");
         this.proxyFolder = this.initFolder("proxy");
         this.sslFolder = this.initFolder("ssl");

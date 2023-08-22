@@ -118,8 +118,8 @@ export class ProxyBuilder {
     }
 
     protected nginxReload() {
-        this.executeCommand("nginx -t", true);
-        this.executeCommand("nginx -s reload", true);
+        this.executeCommand("sudo nginx -t", true);
+        this.executeCommand("sudo nginx -s reload", true);
     }
 
     protected requestSSLCertificate(domain: string) {

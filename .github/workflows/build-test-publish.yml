@@ -13,8 +13,9 @@ jobs:
               with:
                   fetch-depth: 0
 
-            - name: Locking the build queue
-              run: workflow_queue queue blendsdk
+            - name: queue work
+              if: always()
+              run: work_queue queue ${{ github.event.organization.login }}_${{ github.event.repository.name }}
 
             - name: Installing Packages
               run: |
@@ -31,6 +32,6 @@ jobs:
                   yarn tag-version-auto --yes
                   yarn publish-packages --yes
 
-            - name: Unlocking The Build Queue
+            - name: clear work queue
               if: always()
-              run: workflow_queue clear blendsdk
+              run: work_queue clear ${{ github.event.organization.login }}_${{ github.event.repository.name }}

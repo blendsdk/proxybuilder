@@ -67,8 +67,8 @@ export class ProxyBuilder {
             logInfo("Creating nginx.conf symlink");
             this.executeCommand(`sudo touch /etc/nginx/nginx.conf`)
             this.executeCommand(`sudo mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.${Date.now()}`, true);
-            this.executeCommand(`ln -s ${nginxConfFile} ${nginxConfFileSystem}`, true);
-            this.executeCommand(`ln -s ${this.targetFolder}`, true, "/etc/nginx");
+            this.executeCommand(`sudo ln -s ${nginxConfFile} ${nginxConfFileSystem}`, true);
+            this.executeCommand(`sudo ln -s ${this.targetFolder}`, true, "/etc/nginx");
         }
 
         // Disable for now

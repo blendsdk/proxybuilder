@@ -130,6 +130,22 @@ export class ProxyBuilder {
         this.renewCertificate(domain);
     }
 
+    protected revokeCertificate(domain: string) {
+        this.executeCommand(
+            [
+                "/usr/bin/certbot",
+                "revoke",
+                this.isDebug ? "--test-cert" : " ",
+                `--work-dir ${this.varLetsEncryptFolder}/lib`,
+                `--logs-dir ${this.logsFolder}`,
+                `--config-dir ${this.sslFolder}`,
+                "-n",
+                `--cert-name ${domain}`,
+            ].join(" "),
+            true
+        );
+    }
+
     protected renewCertificate(domain: string) {
         this.executeCommand(
             [
@@ -191,6 +207,16 @@ export class ProxyBuilder {
         this.nginxReload();
     }
 
+    public revoke(domain: string) {
+        this.init();
+        const mainConf = path.join(this.sitesFolder, `${domain}.conf`);
+        if (fileExists(mainConf)) {
+            this.revokeCertificate(domain);
+        } else {
+            logWarn(`Domain ${domain} does not exist!`);
+        }
+    }
+       
     public create(domain: string) {
         this.init();
         const mainConf = path.join(this.sitesFolder, `${domain}.conf`);

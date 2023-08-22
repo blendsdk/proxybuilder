@@ -25,12 +25,12 @@ ufw allow OpenSSH && ufw allow 'Nginx Full' && ufw enable && ufw status
 
 ### 4. Create the `proxyserver` on your machine
 ```
-adduser proxyserver
+useradd -m -s $SHELL proxybuilder
 ```
 
 ### 5. Switch to the `proxyserver` user
 ```
-su -l proxyserver
+su -l proxybuilder
 ```
 
 ### 6. Install NVM
@@ -41,12 +41,12 @@ wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
 ### 7. Then logout/login again
 ```
 CTRL-D
-su -l proxyserver
+su -l proxybuilder
 ```
 
 ### 8. Install Node
 ```
-nvm install --lts && nvm use --lts && npm install --global yarn
+nvm install --lts && nvm use --lts && npm install -g npm@latest && npm install -g yarn
 ```
 
 ### 9. Setup repository

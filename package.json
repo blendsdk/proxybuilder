@@ -1,29 +1,41 @@
 {
-  "name": "root",
-  "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
-  "engines": {
-    "node": ">=10.15.0",
-    "yarn": ">=1.5.1"
+  "name": "@blendsdk/proxybuilder",
+  "version": "2.0.0",
+  "description": "Nginx reverse proxy configuration builder with SSL, load balancing, and maintenance mode",
+  "main": "dist/index.js",
+  "bin": {
+    "proxybuilder": "./dist/index.js"
   },
   "scripts": {
-    "tag-version-auto": "lerna version --no-changelog --conventional-commits --yes",
-    "publish-packages": "lerna publish from-package",
-    "postinstall": "rm -fR ./node_modules/@types/eslint-scope",
-    "checkrepo": "git diff-index --quiet HEAD",
-    "bootstrap": "lerna bootstrap --use-workspaces",
-    "build": "lerna clean -y && lerna run build",
-    "ncu": "ncu -u -x \"@blendsdk*\" && lerna exec \"ncu -u -x '@blendsdk*' \" && rm -fR node_modules yarn.lock && yarn install && yarn bootstrap && yarn build",
-    "release-dev": "yarn checkrepo && lerna version --no-changelog --conventional-commits --yes && yarn mkpack && git reset --hard",
-    "release-prod": "yarn checkrepo && && yarn mkpack && git reset --hard"
+    "build": "tsc && mkdir -p dist/commands && cp -r src/templates dist/templates",
+    "watch": "tsc -w",
+    "dev": "node ./dist/index.js",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "yarn clean && yarn build"
+  },
+  "keywords": [
+    "nginx",
+    "proxy",
+    "reverse-proxy",
+    "ssl",
+    "letsencrypt",
+    "certbot",
+    "load-balancer"
+  ],
+  "author": "TrueSoftware",
+  "license": "ISC",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "dependencies": {
+    "yargs": "^17.7.0"
   },
   "devDependencies": {
-    "@types/node": "^18.0.0",
-    "lerna": "^5.1.4",
-    "nodemon": "^2.0.16",
-    "npm-check-updates": "^14.0.1",
-    "typescript": "^4.7.3"
+    "@types/node": "^20.0.0",
+    "@types/yargs": "^17.0.0",
+    "typescript": "^5.4.0"
   }
 }

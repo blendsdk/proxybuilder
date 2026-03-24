@@ -7,7 +7,7 @@
     "proxybuilder": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc && mkdir -p dist/commands && cp -r src/templates dist/templates",
+    "build": "tsc && mkdir -p dist/commands && rm -rf dist/templates && cp -r src/templates dist/templates",
     "watch": "tsc -w",
     "dev": "node ./dist/index.js",
     "clean": "rm -rf dist",

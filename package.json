@@ -10,6 +10,8 @@
     "build": "tsc && mkdir -p dist/commands && rm -rf dist/templates && cp -r src/templates dist/templates",
     "watch": "tsc -w",
     "dev": "node ./dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf dist",
     "prepublishOnly": "yarn clean && yarn build"
   },
@@ -36,6 +38,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/yargs": "^17.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.1"
   }
 }

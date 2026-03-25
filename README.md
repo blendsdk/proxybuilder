@@ -11,14 +11,14 @@ Proxybuilder builds and manages nginx reverse proxy configurations on Ubuntu ser
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                   Internet                       │
+│                   Internet                      │
 └────────────────────┬────────────────────────────┘
                      │ HTTPS (443) / HTTP (80)
                      ▼
 ┌─────────────────────────────────────────────────┐
-│                Nginx Proxy                       │
-│           (managed by proxybuilder)              │
-│                                                  │
+│                Nginx Proxy                      │
+│           (managed by proxybuilder)             │
+│                                                 │
 │  ┌──────────────┐ ┌──────────┐ ┌─────────────┐  │
 │  │     SSL      │ │ Routing  │ │ Maintenance │  │
 │  │ Termination  │ │ by domain│ │ Mode Check  │  │

@@ -1,7 +1,7 @@
 /**
  * Shell command executor for the proxybuilder CLI.
  *
- * Wraps `child_process.execSync` with structured result objects,
+ * Wraps `child_process.spawnSync` with structured result objects,
  * logging integration, dry-run support, and optional sudo elevation.
  * Every external command (certbot, nginx, openssl, etc.) should be
  * invoked through this module.
@@ -9,7 +9,7 @@
  * @packageDocumentation
  */
 
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 import { IShellResult } from "./types";
 import { Logger } from "./logger";
 
@@ -109,64 +109,50 @@ export class Shell {
             return dryResult;
         }
 
-        try {
-            const stdout = execSync(fullCommand, {
-                cwd,
-                encoding: "utf-8",
-                // Capture stderr separately via try/catch on the error object.
-                stdio: ["pipe", "pipe", "pipe"],
-                // 5 minute timeout to prevent hanging commands (e.g. certbot).
-                timeout: 5 * 60 * 1000,
-            });
+        // Use spawnSync via sh -c so both stdout and stderr are always
+        // captured — execSync only returns stdout and discards stderr
+        // on success, which breaks version detection for tools like
+        // `nginx -v` that write to stderr.
+        const spawnResult = spawnSync("sh", ["-c", fullCommand], {
+            cwd,
+            encoding: "utf-8",
+            stdio: ["pipe", "pipe", "pipe"],
+            // 5 minute timeout to prevent hanging commands (e.g. certbot).
+            timeout: 5 * 60 * 1000,
+        });
 
-            const result: IShellResult = {
-                success: true,
-                code: 0,
-                stdout: stdout ?? "",
-                stderr: "",
-                command: fullCommand,
-            };
+        const result: IShellResult = {
+            success: spawnResult.status === 0,
+            code: spawnResult.status ?? 1,
+            stdout: spawnResult.stdout ?? "",
+            stderr: spawnResult.stderr ?? "",
+            command: fullCommand,
+        };
 
-            // Log result and optionally suppress output content.
-            this.logger.commandResult(result);
+        // Log result and optionally suppress output content.
+        this.logger.commandResult(result);
+
+        if (result.success) {
             if (!silent && result.stdout.trim()) {
                 this.logger.debug(result.stdout.trim());
             }
-
-            return result;
-        } catch (err: unknown) {
-            // execSync throws on non-zero exit code. Extract details from the error.
-            const execError = err as {
-                status?: number;
-                stdout?: Buffer | string;
-                stderr?: Buffer | string;
-                message?: string;
-            };
-
-            const result: IShellResult = {
-                success: false,
-                code: execError.status ?? 1,
-                stdout: String(execError.stdout ?? ""),
-                stderr: String(execError.stderr ?? ""),
-                command: fullCommand,
-            };
-
-            this.logger.commandResult(result);
-
-            if (fatal) {
-                const friendlyMessage = [
-                    `Command failed: ${fullCommand}`,
-                    result.stderr ? `Error: ${result.stderr.trim()}` : "",
-                    `Exit code: ${result.code}`,
-                ]
-                    .filter(Boolean)
-                    .join("\n");
-
-                throw new Error(friendlyMessage);
-            }
-
             return result;
         }
+
+        // Command failed — throw or return based on fatal flag.
+        if (fatal) {
+            const friendlyMessage = [
+                `Command failed: ${fullCommand}`,
+                result.stderr ? `Error: ${result.stderr.trim()}` : "",
+                `Exit code: ${result.code}`,
+            ]
+                .filter(Boolean)
+                .join("\n");
+
+            throw new Error(friendlyMessage);
+        }
+
+        return result;
     }
 
     /**

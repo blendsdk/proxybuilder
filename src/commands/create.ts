@@ -177,6 +177,10 @@ export const handler = (argv: ICreateArgs): void => {
     builder.createDomainApp(domain);
     logger.blank();
 
+    // --- Ensure nginx is running (required for HTTP-01 challenge) ---
+    builder.ensureNginxRunning();
+    logger.blank();
+
     // --- Request SSL certificate ---
     builder.requestCertificate(domain, certMethod, config.email, staging, dnsProvider);
     logger.blank();

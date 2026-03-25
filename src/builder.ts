@@ -246,6 +246,16 @@ export class ProxyBuilder {
             this.logger,
         );
         this.logger.success("Rendered letsencrypt.conf");
+
+        // Default ACME challenge server on port 80 — ensures certbot can
+        // verify HTTP-01 challenges even before any domain site config exists.
+        renderTemplate(
+            "acme-default.conf",
+            { proxyFolder: path.join(this.target, FOLDERS.proxy) },
+            path.join(this.target, FOLDERS.confD, "acme-default.conf"),
+            this.logger,
+        );
+        this.logger.success("Rendered acme-default.conf");
     }
 
     // -----------------------------------------------------------------------
@@ -331,6 +341,34 @@ export class ProxyBuilder {
         this.logger.section("Reloading nginx");
         this.shell.exec("nginx -s reload", { fatal: true });
         this.logger.success("nginx reloaded");
+    }
+
+    /**
+     * Ensure nginx is running, starting it if necessary.
+     *
+     * Checks for a valid PID file at `/run/nginx.pid`. If nginx is not
+     * running, starts it via `systemctl start nginx`. This is called
+     * before SSL certificate requests to guarantee that the ACME HTTP-01
+     * challenge server on port 80 is reachable.
+     */
+    ensureNginxRunning(): void {
+        // Check if nginx is already running by reading its PID file.
+        try {
+            if (fs.existsSync("/run/nginx.pid")) {
+                const pidStr = fs.readFileSync("/run/nginx.pid", "utf-8").trim();
+                const pid = parseInt(pidStr, 10);
+                // Verify the process actually exists (signal 0 = no-op check).
+                process.kill(pid, 0);
+                this.logger.debug(`nginx is already running (pid ${pid})`);
+                return;
+            }
+        } catch {
+            // PID file exists but process is gone — fall through to start.
+        }
+
+        this.logger.info("nginx is not running — starting it now");
+        this.shell.exec("systemctl start nginx", { fatal: true });
+        this.logger.success("nginx started");
     }
 
     // -----------------------------------------------------------------------

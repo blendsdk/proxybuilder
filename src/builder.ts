@@ -213,16 +213,15 @@ export class ProxyBuilder {
         this.logger.section("Rendering shared configurations");
 
         // Main nginx.conf — the root nginx configuration.
+        // Keys must match %placeholder% names in the nginx.conf template.
         renderTemplate(
             "nginx.conf",
             {
-                target: this.target,
-                ssl_key: path.join(this.target, FOLDERS.ssl, "self-ssl.key"),
-                ssl_cert: path.join(this.target, FOLDERS.ssl, "self-ssl.crt"),
-                dhparam: path.join(this.target, "dhparam.pem"),
-                sites_enabled: path.join(this.target, FOLDERS.sitesEnabled),
-                modules_enabled: path.join(this.target, FOLDERS.modulesEnabled),
-                conf_d: path.join(this.target, FOLDERS.confD),
+                modulesEnabled: path.join(this.target, FOLDERS.modulesEnabled),
+                logFolder: path.join(this.target, FOLDERS.logs),
+                dhparamFile: path.join(this.target, "dhparam.pem"),
+                confDFolder: path.join(this.target, FOLDERS.confD),
+                sitesEnabled: path.join(this.target, FOLDERS.sitesEnabled),
             },
             path.join(this.target, FOLDERS.nginx, "nginx.conf"),
             this.logger,

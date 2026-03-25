@@ -9,11 +9,17 @@
  * @packageDocumentation
  */
 
+import fs from "fs";
 import path from "path";
 import yargs from "yargs";
 
+// Read the version from package.json at runtime so the CLI banner
+// always reflects the installed package version.
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf-8"));
+
 yargs
     .scriptName("proxybuilder")
+    .usage(`proxybuilder v${pkg.version}\n\nUsage: $0 <command>`)
     .commandDir(path.resolve(path.join(__dirname, "commands")))
     .demandCommand(1, "You must specify a command. Run --help for available commands.")
     .strict()

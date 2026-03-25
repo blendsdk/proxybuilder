@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.3](https://github.com/blendsdk/proxybuilder/compare/v2.1.2...v2.1.3) (2026-03-25)
+
+
+### Bug Fixes
+
+* **template:** fix the logfile parameter ([b26516f](https://github.com/blendsdk/proxybuilder/commit/b26516ff558d88127c07cdcaa9a03cfb712c9df0))
+
 ### [2.1.2](https://github.com/blendsdk/proxybuilder/compare/v2.1.1...v2.1.2) (2026-03-25)
 
 ### [2.1.1](https://github.com/blendsdk/proxybuilder/compare/v2.1.0...v2.1.1) (2026-03-25)

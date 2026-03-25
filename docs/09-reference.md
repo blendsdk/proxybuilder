@@ -358,7 +358,7 @@ proxybuilder status [--json]
 
 ## Useful Links
 
-- **GitHub:** [https://github.com/TrueSoftwareNL/nginx-proxy](https://github.com/TrueSoftwareNL/nginx-proxy)
+- **GitHub:** [https://github.com/blendsdk/proxybuilder](https://github.com/blendsdk/proxybuilder)
 - **npm:** [https://www.npmjs.com/package/@blendsdk/proxybuilder](https://www.npmjs.com/package/@blendsdk/proxybuilder)
 - **Let's Encrypt:** [https://letsencrypt.org/](https://letsencrypt.org/)
 - **Let's Encrypt Rate Limits:** [https://letsencrypt.org/docs/rate-limits/](https://letsencrypt.org/docs/rate-limits/)

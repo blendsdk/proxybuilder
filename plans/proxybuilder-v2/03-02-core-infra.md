@@ -398,7 +398,7 @@ yargs
     .version()
     .help()
     .alias("h", "help")
-    .epilogue("For more information, see: https://github.com/TrueSoftwareNL/nginx-proxy")
+    .epilogue("For more information, see: https://github.com/blendsdk/proxybuilder")
     .parse();
 ```
 

@@ -113,7 +113,7 @@ nginx-proxy/                 # Git root
     "certbot",
     "load-balancer"
   ],
-  "author": "TrueSoftware",
+  "author": "BlendSDK",
   "license": "ISC",
   "engines": {
     "node": ">=20.0.0"

@@ -19,8 +19,7 @@ jobs:
 
             - name: Installing Packages
               run: |
-                yarn install
-                yarn bootstrap
+                  yarn install
 
             - name: Building the Project
               run: |

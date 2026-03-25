@@ -14,12 +14,12 @@
 import fs from "fs";
 import path from "path";
 
-import { IProxyConfig } from "./types";
-import { CONFIG_FILENAME, DH_PARAM_BITS, FOLDERS } from "./constants";
+import { CertMethod, DnsProviderName, IProxyConfig, ProxyMode } from "./types";
+import { CERTBOT_BIN, CONFIG_FILENAME, DH_PARAM_BITS, FOLDERS, LE_STAGING_NOTE } from "./constants";
 import { ConfigManager } from "./config";
 import { Logger } from "./logger";
 import { Shell } from "./shell";
-import { renderTemplate } from "./template";
+import { generateServerName, generateUpstreamName, generateUpstreamServers, renderTemplate } from "./template";
 
 // ---------------------------------------------------------------------------
 // ProxyBuilder
@@ -239,9 +239,10 @@ export class ProxyBuilder {
         this.logger.success("Rendered proxy.conf");
 
         // Let's Encrypt ACME challenge location block.
+        // wwwFolder is the webroot where certbot writes challenge files.
         renderTemplate(
             "letsencrypt.conf",
-            { target: this.target },
+            { wwwFolder: path.join(this.target, FOLDERS.letsencrypt) },
             path.join(this.target, FOLDERS.proxy, "letsencrypt.conf"),
             this.logger,
         );
@@ -412,5 +413,387 @@ export class ProxyBuilder {
      */
     resolvePath(...segments: string[]): string {
         return path.join(this.target, ...segments);
+    }
+
+    // -----------------------------------------------------------------------
+    // Domain Lifecycle — App Folder
+    // -----------------------------------------------------------------------
+
+    /**
+     * Create the per-domain application folder and copy default assets.
+     *
+     * Creates `<target>/apps/<domain>/` and copies the default
+     * maintenance.html page into it. This folder holds all per-domain
+     * config snippets (upstream.conf, ssl.conf, maintenance.conf, etc.).
+     *
+     * @param domain - The domain name (e.g. "api.example.com").
+     */
+    createDomainApp(domain: string): void {
+        const appDir = path.join(this.target, FOLDERS.apps, domain);
+        fs.mkdirSync(appDir, { recursive: true });
+        this.logger.debug(`Created app directory: ${appDir}`);
+
+        // Copy the default maintenance.html page to the domain's app folder.
+        const srcPage = path.join(__dirname, "templates", "pages", "maintenance.html");
+        const destPage = path.join(appDir, "maintenance.html");
+        if (fs.existsSync(srcPage)) {
+            fs.copyFileSync(srcPage, destPage);
+            this.logger.debug("Copied maintenance.html to app folder");
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Domain Lifecycle — Template Rendering
+    // -----------------------------------------------------------------------
+
+    /**
+     * Build the common template variable map for a domain.
+     *
+     * Centralises the data that every domain template needs, so all
+     * render calls use consistent paths and naming.
+     *
+     * @param domain   - The domain name.
+     * @param upstreams - Array of upstream addresses (host:port).
+     * @param wildcard - Whether this is a wildcard domain.
+     * @returns Key/value map for template placeholders.
+     */
+    protected buildTemplateData(
+        domain: string,
+        upstreams: string[],
+        wildcard: boolean,
+    ): Record<string, string> {
+        return {
+            domain,
+            serverName: generateServerName(domain, wildcard),
+            upstreamName: generateUpstreamName(domain),
+            upstreamServers: generateUpstreamServers(upstreams),
+            appFolder: path.join(this.target, FOLDERS.apps),
+            proxyFolder: path.join(this.target, FOLDERS.proxy),
+            sslFolder: path.join(this.target, FOLDERS.letsencrypt),
+            wwwFolder: path.join(this.target, FOLDERS.letsencrypt),
+            logFolder: path.join(this.target, FOLDERS.logs),
+        };
+    }
+
+    /**
+     * Render all nginx config templates for a domain.
+     *
+     * Selects the correct template set based on proxy mode (passthrough
+     * or full) and writes all config snippets to the domain's app folder
+     * and the main site config to sites-enabled.
+     *
+     * @param domain    - The domain name.
+     * @param mode      - Proxy mode ("passthrough" or "full").
+     * @param upstreams - Array of upstream addresses.
+     * @param wildcard  - Whether this is a wildcard domain.
+     */
+    renderDomainConfigs(
+        domain: string,
+        mode: ProxyMode,
+        upstreams: string[],
+        wildcard: boolean,
+    ): void {
+        this.logger.section("Configuring nginx");
+
+        const data = this.buildTemplateData(domain, upstreams, wildcard);
+        const appDir = path.join(this.target, FOLDERS.apps, domain);
+        const templateDir = mode; // "passthrough" or "full" matches directory names.
+
+        // Site config → sites-enabled/<domain>.conf
+        renderTemplate(
+            `${templateDir}/site.conf`,
+            data,
+            path.join(this.target, FOLDERS.sitesEnabled, `${domain}.conf`),
+            this.logger,
+        );
+        this.logger.success("Rendered site.conf");
+
+        // Upstream config → apps/<domain>/upstream.conf
+        renderTemplate(
+            `${templateDir}/upstream.conf`,
+            data,
+            path.join(appDir, "upstream.conf"),
+            this.logger,
+        );
+        this.logger.success(`Rendered upstream.conf (${upstreams.length} server(s), round-robin)`);
+
+        // SSL config → apps/<domain>/ssl.conf
+        renderTemplate(
+            `${templateDir}/ssl.conf`,
+            data,
+            path.join(appDir, "ssl.conf"),
+            this.logger,
+        );
+        this.logger.success("Rendered ssl.conf");
+
+        // Maintenance config → apps/<domain>/maintenance.conf
+        renderTemplate(
+            "maintenance.conf",
+            data,
+            path.join(appDir, "maintenance.conf"),
+            this.logger,
+        );
+        this.logger.success("Rendered maintenance.conf");
+
+        // Full mode has additional config snippets.
+        if (mode === "full") {
+            renderTemplate("full/security.conf", data, path.join(appDir, "security.conf"), this.logger);
+            this.logger.success("Rendered security.conf");
+
+            renderTemplate("full/general.conf", data, path.join(appDir, "general.conf"), this.logger);
+            this.logger.success("Rendered general.conf");
+
+            renderTemplate("full/log.conf", data, path.join(appDir, "log.conf"), this.logger);
+            this.logger.success("Rendered log.conf");
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Domain Lifecycle — SSL Certificate
+    // -----------------------------------------------------------------------
+
+    /**
+     * Request an SSL certificate from Let's Encrypt via certbot.
+     *
+     * Supports two methods:
+     * - **webroot**: Uses HTTP-01 challenge (standard domains).
+     * - **dns**: Uses DNS-01 challenge via manual hooks (wildcard domains).
+     *
+     * The `--config-dir`, `--work-dir`, and `--logs-dir` flags point
+     * certbot to the proxybuilder-managed directories so all cert data
+     * stays within the target folder.
+     *
+     * @param domain      - The domain name to get a cert for.
+     * @param certMethod  - "webroot" or "dns".
+     * @param email       - Let's Encrypt contact email.
+     * @param staging     - If true, use the Let's Encrypt staging environment.
+     * @param dnsProvider - DNS provider name (required when certMethod is "dns").
+     */
+    requestCertificate(
+        domain: string,
+        certMethod: CertMethod,
+        email: string,
+        staging: boolean,
+        dnsProvider?: DnsProviderName,
+    ): void {
+        this.logger.section("Requesting SSL certificate");
+
+        if (staging) {
+            this.logger.warn(LE_STAGING_NOTE);
+        }
+
+        const configDir = path.join(this.target, FOLDERS.letsencrypt);
+        const workDir = path.join(this.target, FOLDERS.letsencrypt, "lib");
+        const logsDir = path.join(this.target, FOLDERS.logs);
+
+        // Common certbot flags shared by all methods.
+        const commonFlags = [
+            `--config-dir ${configDir}`,
+            `--work-dir ${workDir}`,
+            `--logs-dir ${logsDir}`,
+            `--email ${email}`,
+            "--agree-tos",
+            "--non-interactive",
+            `-d ${domain}`,
+        ];
+
+        if (staging) {
+            commonFlags.push("--test-cert");
+        }
+
+        if (certMethod === "webroot") {
+            // HTTP-01 challenge — certbot writes files to the webroot.
+            const webroot = path.join(this.target, FOLDERS.letsencrypt);
+            commonFlags.push(`--webroot -w ${webroot}`);
+        } else {
+            // DNS-01 challenge — uses manual hooks for DNS record creation.
+            // The hook scripts are generated by the dns-setup command.
+            const hookDir = path.join(this.target, FOLDERS.dns);
+            const authHook = path.join(hookDir, `${dnsProvider}-auth.sh`);
+            const cleanupHook = path.join(hookDir, `${dnsProvider}-cleanup.sh`);
+            commonFlags.push(
+                "--manual",
+                "--preferred-challenges dns",
+                `--manual-auth-hook ${authHook}`,
+                `--manual-cleanup-hook ${cleanupHook}`,
+            );
+        }
+
+        const cmd = `${CERTBOT_BIN} certonly ${commonFlags.join(" ")}`;
+        this.shell.exec(cmd, { fatal: true });
+        this.logger.success("Certificate obtained");
+    }
+
+    // -----------------------------------------------------------------------
+    // Domain Lifecycle — Enable / Disable
+    // -----------------------------------------------------------------------
+
+    /**
+     * Move a domain's site config between sites-enabled and sites-disabled.
+     *
+     * Enabling moves the config INTO sites-enabled (nginx will pick it up).
+     * Disabling moves it OUT of sites-enabled into sites-disabled.
+     *
+     * @param domain - The domain name.
+     * @param enable - true to enable, false to disable.
+     * @returns true if the move was performed, false if already in target state.
+     */
+    moveDomainConfig(domain: string, enable: boolean): boolean {
+        const filename = `${domain}.conf`;
+        const enabledPath = path.join(this.target, FOLDERS.sitesEnabled, filename);
+        const disabledPath = path.join(this.target, FOLDERS.sitesDisabled, filename);
+
+        if (enable) {
+            // Move from disabled → enabled.
+            if (fs.existsSync(enabledPath)) {
+                this.logger.info(`Domain ${domain} is already enabled`);
+                return false;
+            }
+            if (!fs.existsSync(disabledPath)) {
+                throw new Error(`Config file not found in sites-disabled for ${domain}`);
+            }
+            fs.renameSync(disabledPath, enabledPath);
+            this.logger.success(`Enabled ${domain}`);
+        } else {
+            // Move from enabled → disabled.
+            if (fs.existsSync(disabledPath)) {
+                this.logger.info(`Domain ${domain} is already disabled`);
+                return false;
+            }
+            if (!fs.existsSync(enabledPath)) {
+                throw new Error(`Config file not found in sites-enabled for ${domain}`);
+            }
+            fs.renameSync(enabledPath, disabledPath);
+            this.logger.success(`Disabled ${domain}`);
+        }
+
+        return true;
+    }
+
+    // -----------------------------------------------------------------------
+    // Domain Lifecycle — Delete
+    // -----------------------------------------------------------------------
+
+    /**
+     * Remove all files associated with a domain.
+     *
+     * Deletes the site config from both sites-enabled and sites-disabled,
+     * and recursively removes the domain's app folder.
+     *
+     * @param domain - The domain name to clean up.
+     */
+    deleteDomainFiles(domain: string): void {
+        this.logger.section("Removing domain files");
+
+        // Remove site config from sites-enabled.
+        const enabledConf = path.join(this.target, FOLDERS.sitesEnabled, `${domain}.conf`);
+        if (fs.existsSync(enabledConf)) {
+            fs.unlinkSync(enabledConf);
+            this.logger.debug(`Removed ${enabledConf}`);
+        }
+
+        // Remove site config from sites-disabled.
+        const disabledConf = path.join(this.target, FOLDERS.sitesDisabled, `${domain}.conf`);
+        if (fs.existsSync(disabledConf)) {
+            fs.unlinkSync(disabledConf);
+            this.logger.debug(`Removed ${disabledConf}`);
+        }
+
+        // Recursively remove the app folder.
+        const appDir = path.join(this.target, FOLDERS.apps, domain);
+        if (fs.existsSync(appDir)) {
+            fs.rmSync(appDir, { recursive: true, force: true });
+            this.logger.debug(`Removed ${appDir}`);
+        }
+
+        this.logger.success("Domain files removed");
+    }
+
+    /**
+     * Revoke and delete an SSL certificate via certbot.
+     *
+     * @param domain  - The domain whose cert should be revoked.
+     * @param staging - Whether the cert was issued by the staging environment.
+     */
+    revokeCertificate(domain: string, staging: boolean): void {
+        this.logger.section("Revoking SSL certificate");
+
+        const configDir = path.join(this.target, FOLDERS.letsencrypt);
+        const certPath = path.join(configDir, "live", domain, "fullchain.pem");
+
+        if (!fs.existsSync(certPath)) {
+            this.logger.warn(`Certificate not found at ${certPath} — skipping revocation`);
+            return;
+        }
+
+        const flags = [
+            `--config-dir ${configDir}`,
+            `--cert-path ${certPath}`,
+            "--non-interactive",
+        ];
+
+        if (staging) {
+            flags.push("--test-cert");
+        }
+
+        const result = this.shell.exec(
+            `${CERTBOT_BIN} revoke ${flags.join(" ")}`,
+            { fatal: false },
+        );
+
+        if (result.success) {
+            this.logger.success("Certificate revoked");
+            // Also delete the cert files after revoking.
+            this.shell.exec(
+                `${CERTBOT_BIN} delete --cert-name ${domain} --config-dir ${configDir} --non-interactive`,
+                { fatal: false },
+            );
+        } else {
+            this.logger.warn("Certificate revocation failed — continuing with file cleanup");
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Domain Lifecycle — Certificate Info
+    // -----------------------------------------------------------------------
+
+    /**
+     * Get the expiry date of a domain's SSL certificate.
+     *
+     * Reads the certificate file and uses openssl to extract the
+     * expiry date. Returns "N/A" if the cert file doesn't exist.
+     *
+     * @param domain - The domain name.
+     * @returns ISO date string (YYYY-MM-DD) or "N/A".
+     */
+    getCertExpiry(domain: string): string {
+        const configDir = path.join(this.target, FOLDERS.letsencrypt);
+        const certPath = path.join(configDir, "live", domain, "fullchain.pem");
+
+        if (!fs.existsSync(certPath)) {
+            return "N/A";
+        }
+
+        try {
+            const result = this.shell.exec(
+                `openssl x509 -enddate -noout -in ${certPath}`,
+                { fatal: false, silent: true },
+            );
+
+            if (!result.success) {
+                return "N/A";
+            }
+
+            // Parse "notAfter=Aug 15 12:00:00 2026 GMT" → "2026-08-15"
+            const match = result.stdout.match(/notAfter=(.+)/);
+            if (!match) {
+                return "N/A";
+            }
+
+            const date = new Date(match[1].trim());
+            return isNaN(date.getTime()) ? "N/A" : date.toISOString().split("T")[0];
+        } catch {
+            return "N/A";
+        }
     }
 }

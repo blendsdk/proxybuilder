@@ -1,6 +1,6 @@
 {
   "name": "@blendsdk/proxybuilder",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Nginx reverse proxy configuration builder with SSL, load balancing, and maintenance mode",
   "main": "dist/index.js",
   "bin": {

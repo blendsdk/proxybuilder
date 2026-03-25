@@ -35,7 +35,7 @@ These rules are **mandatory** and must be consulted before every task.
 - **Language(s):** TypeScript (strict mode)
 - **Framework(s):** yargs (CLI), Node.js built-in fs/path/child_process
 - **Package Manager:** yarn
-- **Test Framework:** None (no tests currently)
+- **Test Framework:** Vitest
 - **Node.js Minimum:** >= 20 LTS
 
 **Manifest files found:** package.json, tsconfig.json
@@ -53,15 +53,14 @@ clear && yarn build
 ### Test
 
 ```bash
-# No tests currently — focus on functional CLI tool
-clear && yarn build
+clear && yarn test
 ```
 
 ### Verify (before commit)
 
 ```bash
 # Full verification — run this before any git commit
-clear && yarn build
+clear && yarn build && yarn test
 ```
 
 ### Dev (run locally)
@@ -127,6 +126,13 @@ src/
     pages/              # HTML pages
       maintenance.html
       502.html
+tests/                  # Vitest test files (192 tests)
+  validator.test.ts     # Input validation (74 tests)
+  template.test.ts      # Template engine (26 tests)
+  config.test.ts        # ConfigManager CRUD (31 tests)
+  logger.test.ts        # Logger level/file/format (24 tests)
+  dns-provider.test.ts  # DNS provider registry (20 tests)
+  constants.test.ts     # Constants validation (17 tests)
 plans/
   proxybuilder-v2/      # v2 implementation plan (completed)
 ```

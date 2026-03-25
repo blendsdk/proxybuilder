@@ -13,6 +13,33 @@ import fs from "fs";
 import path from "path";
 import yargs from "yargs";
 
+// ---------------------------------------------------------------------------
+// Global Error Handler
+// ---------------------------------------------------------------------------
+
+/**
+ * Catch any unhandled exception from command handlers and display a
+ * clean, user-friendly error message instead of dumping a raw stack trace
+ * (which includes minified yargs source code and is unreadable).
+ *
+ * Set the DEBUG environment variable to see the full stack trace:
+ *   DEBUG=1 proxybuilder create --domain ...
+ */
+process.on("uncaughtException", (err: Error) => {
+    const timestamp = new Date().toISOString().replace("T", " ").substring(0, 23);
+    console.error("");
+    console.error(`${timestamp} \x1b[31m[ERROR]\x1b[0m ${err.message}`);
+    if (process.env.DEBUG) {
+        console.error("");
+        console.error(err.stack);
+    }
+    process.exit(1);
+});
+
+// ---------------------------------------------------------------------------
+// CLI Setup
+// ---------------------------------------------------------------------------
+
 // Read the version from package.json at runtime so the CLI banner
 // always reflects the installed package version.
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf-8"));

@@ -17,6 +17,10 @@ import { Shell } from "../shell";
 import { ProxyBuilder } from "../builder";
 import { cronJobExists } from "../cron";
 
+// Read the version from package.json at runtime so the status output
+// always reflects the installed package version (not a hardcoded string).
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "package.json"), "utf-8"));
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -93,7 +97,7 @@ export const handler = (argv: IStatusArgs): void => {
     // --- JSON output ---
     if (argv.json) {
         const jsonOutput = {
-            version: "2.0.0",
+            version: pkg.version,
             target,
             system: {
                 nginx: nginxStatus,
@@ -110,7 +114,7 @@ export const handler = (argv: IStatusArgs): void => {
     // --- Formatted output ---
     logger.section("Proxybuilder Status");
     console.log("");
-    console.log(`  Version:    2.0.0`);
+    console.log(`  Version:    ${pkg.version}`);
     console.log(`  Target:     ${target}`);
     console.log(`  Config:     ✓ Valid`);
 
